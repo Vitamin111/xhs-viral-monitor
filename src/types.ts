@@ -90,3 +90,7 @@ export interface FavoriteToggleResponse {
   favorited: boolean;
   favorite?: FavoriteViewItem;
 }
+
+export interface UpdateTaskPayload extends CreateTaskPayload {
+  status?: TaskItem['status'];
+}

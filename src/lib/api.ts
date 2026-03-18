@@ -23,3 +23,31 @@ export async function postJson<TResponse, TBody>(path: string, body: TBody): Pro
 
   return (await response.json()) as TResponse;
 }
+
+export async function putJson<TResponse, TBody>(path: string, body: TBody): Promise<TResponse> {
+  const response = await fetch(path, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Request failed: ${response.status}`);
+  }
+
+  return (await response.json()) as TResponse;
+}
+
+export async function deleteJson<TResponse>(path: string): Promise<TResponse> {
+  const response = await fetch(path, {
+    method: 'DELETE',
+  });
+
+  if (!response.ok) {
+    throw new Error(`Request failed: ${response.status}`);
+  }
+
+  return (await response.json()) as TResponse;
+}

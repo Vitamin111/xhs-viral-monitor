@@ -117,6 +117,66 @@ app.post('/api/tasks', withStore((req, res, store) => {
   res.status(201).json(task);
 }));
 
+app.put('/api/tasks/:id', withStore((req, res, store) => {
+  const task = store.tasks.find((item) => item.id === Number(req.params.id));
+  if (!task) {
+    res.status(404).json({ message: 'task not found' });
+    return;
+  }
+
+  const { taskName, taskType, targets, cadence, status } = req.body ?? {};
+
+  if (!taskName || !taskType || !Array.isArray(targets) || targets.length === 0 || !cadence) {
+    res.status(400).json({ message: 'invalid task payload' });
+    return;
+  }
+
+  task.taskName = String(taskName);
+  task.taskType = String(taskType).toUpperCase();
+  task.targets = targets.map((item) => String(item).trim()).filter(Boolean);
+  task.cadence = String(cadence);
+  task.status = status ? String(status).toUpperCase() : task.status;
+
+  saveStore(store);
+  res.json(task);
+}));
+
+app.post('/api/tasks/:id/pause', withStore((req, res, store) => {
+  const task = store.tasks.find((item) => item.id === Number(req.params.id));
+  if (!task) {
+    res.status(404).json({ message: 'task not found' });
+    return;
+  }
+
+  task.status = 'PAUSED';
+  saveStore(store);
+  res.json(task);
+}));
+
+app.post('/api/tasks/:id/resume', withStore((req, res, store) => {
+  const task = store.tasks.find((item) => item.id === Number(req.params.id));
+  if (!task) {
+    res.status(404).json({ message: 'task not found' });
+    return;
+  }
+
+  task.status = 'ACTIVE';
+  saveStore(store);
+  res.json(task);
+}));
+
+app.delete('/api/tasks/:id', withStore((req, res, store) => {
+  const taskIndex = store.tasks.findIndex((item) => item.id === Number(req.params.id));
+  if (taskIndex < 0) {
+    res.status(404).json({ message: 'task not found' });
+    return;
+  }
+
+  const [removed] = store.tasks.splice(taskIndex, 1);
+  saveStore(store);
+  res.json({ removed });
+}));
+
 app.get('/api/alerts', withStore((_req, res, store) => {
   res.json(store.alerts);
 }));
