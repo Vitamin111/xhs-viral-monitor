@@ -1,36 +1,62 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { SectionHeader } from '../components/SectionHeader';
 import { favorites, notes } from '../data/mockData';
 import { useApiData } from '../hooks/useApiData';
+import { postJson } from '../lib/api';
 import { formatNumber, levelLabel } from '../lib/format';
-import type { NoteDetail } from '../types';
+import type { FavoriteToggleResponse, NoteDetail } from '../types';
 
 export function NoteDetailPage() {
   const { noteId } = useParams();
+  const [favoriteBusy, setFavoriteBusy] = useState(false);
+
   const fallback = useMemo<NoteDetail>(() => {
     const note = notes.find((item) => item.id === Number(noteId)) ?? notes[0];
     const favorite = favorites.find((item) => item.noteId === note.id);
 
     return {
       ...note,
-      ruleName: '爆款识别规则 v1',
-      ruleReason: '收藏数高于类目 P90，且增长分显著高于类目均值，发布时间仍处于黄金窗口。',
-      scoreBreakdown: ['收藏分 95', '增长分 88', '评论分 73', '时间衰减 10'],
+      ruleName: 'Viral Rule v1',
+      ruleReason: 'Save count is above category P90 and growth remains inside the prime discovery window.',
+      scoreBreakdown: ['save 95', 'growth 88', 'comment 73', 'time decay 10'],
       favoriteFolder: favorite?.folder,
       favoriteRemark: favorite?.remark,
       favoriteTags: favorite?.tags,
     };
   }, [noteId]);
+
   const noteState = useApiData<NoteDetail>(`/api/notes/${noteId}`, fallback);
   const note = noteState.data;
+
+  async function toggleFavorite() {
+    setFavoriteBusy(true);
+    try {
+      await postJson<FavoriteToggleResponse, { noteId: number }>(
+        '/api/favorites/toggle',
+        { noteId: note.id },
+      );
+      noteState.refresh();
+    } finally {
+      setFavoriteBusy(false);
+    }
+  }
 
   return (
     <div className="page">
       <SectionHeader
         title={note.title}
-        description={`${note.authorName} · ${note.category} · 发布时间 ${note.publishTime}`}
-        actions={<Link to="/discovery" className="button button--ghost">返回列表</Link>}
+        description={`${note.authorName} · ${note.category} · Published ${note.publishTime}`}
+        actions={
+          <div className="inline-actions">
+            <button className="button" onClick={toggleFavorite} disabled={favoriteBusy}>
+              {favoriteBusy ? 'Saving...' : note.favoriteFolder ? 'Remove Favorite' : 'Save Favorite'}
+            </button>
+            <Link to="/discovery" className="button button--ghost">
+              Back to list
+            </Link>
+          </div>
+        }
       />
 
       <section className="detail-grid">
@@ -49,30 +75,30 @@ export function NoteDetailPage() {
         </article>
 
         <article className="panel">
-          <SectionHeader title="核心指标" description="基于最近一次快照计算" />
+          <SectionHeader title="Core Metrics" description="Computed from the latest snapshot." />
           <div className="stats-grid">
             <div className="stat-box">
-              <span>点赞</span>
+              <span>Likes</span>
               <strong>{formatNumber(note.likeCount)}</strong>
             </div>
             <div className="stat-box">
-              <span>收藏</span>
+              <span>Saves</span>
               <strong>{formatNumber(note.favoriteCount)}</strong>
             </div>
             <div className="stat-box">
-              <span>评论</span>
+              <span>Comments</span>
               <strong>{formatNumber(note.commentCount)}</strong>
             </div>
             <div className="stat-box">
-              <span>互动效率</span>
+              <span>Efficiency</span>
               <strong>{note.engagementRate}</strong>
             </div>
             <div className="stat-box">
-              <span>增长率</span>
+              <span>Growth Rate</span>
               <strong>{note.growthRate}</strong>
             </div>
             <div className="stat-box">
-              <span>爆款分</span>
+              <span>Viral Score</span>
               <strong>{note.viralScore}</strong>
             </div>
           </div>
@@ -81,7 +107,7 @@ export function NoteDetailPage() {
 
       <section className="panel-grid">
         <article className="panel">
-          <SectionHeader title="命中规则" description="当前内容命中原因说明" />
+          <SectionHeader title="Rule Hit" description="Why this note is currently flagged by the system." />
           <div className="rule-list">
             <div className="rule-item">
               <strong>{note.ruleName}</strong>
@@ -96,12 +122,12 @@ export function NoteDetailPage() {
         </article>
 
         <article className="panel">
-          <SectionHeader title="复盘备注" description="沉淀可复用的内容结论" />
+          <SectionHeader title="Review Notes" description="Capture reusable takeaways for future planning." />
           <div className="favorite-box">
-            <strong>{note.favoriteFolder ? `已收藏到 ${note.favoriteFolder}` : '尚未收藏'}</strong>
-            <p>{note.favoriteRemark ?? '建议记录标题结构、封面元素和评论高频诉求。'}</p>
+            <strong>{note.favoriteFolder ? `Saved to ${note.favoriteFolder}` : 'Not saved yet'}</strong>
+            <p>{note.favoriteRemark ?? 'Record title structure, visual cues, and the strongest user demand signals.'}</p>
             <div className="chips">
-              {(note.favoriteTags ?? ['高收藏', '对比型封面']).map((tag) => (
+              {(note.favoriteTags ?? ['high-save', 'before-after']).map((tag) => (
                 <span key={tag} className="chip">
                   {tag}
                 </span>
@@ -110,7 +136,7 @@ export function NoteDetailPage() {
           </div>
         </article>
       </section>
-      {noteState.error ? <p className="status-message">详情接口未连接，当前显示本地回退数据。</p> : null}
+      {noteState.error ? <p className="status-message">Detail API is unavailable, showing fallback data.</p> : null}
     </div>
   );
 }

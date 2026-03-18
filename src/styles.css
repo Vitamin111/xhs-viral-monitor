@@ -295,6 +295,12 @@ select {
   color: #111827;
 }
 
+.button--small {
+  height: 34px;
+  padding: 0 12px;
+  font-size: 13px;
+}
+
 .trend-list,
 .alert-feed,
 .task-list,
@@ -473,7 +479,8 @@ select {
 .filters,
 .toolbar,
 .favorite-card__footer,
-.rule-breakdown {
+.rule-breakdown,
+.inline-actions {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -528,6 +535,12 @@ select {
 .table__row:last-child {
   border-bottom: none;
   padding-bottom: 0;
+}
+
+.table__action-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .detail-grid {

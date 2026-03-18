@@ -85,3 +85,8 @@ export interface CreateTaskPayload {
   targets: string[];
   cadence: string;
 }
+
+export interface FavoriteToggleResponse {
+  favorited: boolean;
+  favorite?: FavoriteViewItem;
+}
