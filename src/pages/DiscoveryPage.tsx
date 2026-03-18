@@ -48,7 +48,7 @@ export function DiscoveryPage() {
           className="search search--wide"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="搜索关键词、标题或达人"
+          placeholder="搜索关键词、标题或作者"
         />
         <select value={level} onChange={(event) => setLevel(event.target.value as typeof level)} className="select">
           <option value="ALL">全部等级</option>
@@ -58,7 +58,7 @@ export function DiscoveryPage() {
         </select>
         <div className="filters__summary">当前共 {filteredNotes.length} 条内容</div>
         {notesState.loading ? <div className="filters__summary">正在加载最新数据...</div> : null}
-        {notesState.error ? <div className="filters__summary">API 不可用，当前显示本地回退数据</div> : null}
+        {notesState.error ? <div className="filters__summary">API 不可用，当前显示本地回退数据。</div> : null}
       </section>
 
       {view === 'card' ? (

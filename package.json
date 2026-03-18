@@ -8,11 +8,14 @@
     "api": "./server/server.mjs",
     "build": "./scripts/build.mjs",
     "preview": "./scripts/preview.mjs",
-    "test": "./scripts/test.mjs"
+    "test": "./scripts/test.mjs",
+    "xhs:login": "node ./scripts/xhs-login.mjs",
+    "xhs:collect": "node ./scripts/xhs-collect.mjs"
   },
   "dependencies": {
     "cors": "^2.8.6",
     "express": "^5.2.1",
+    "playwright": "^1.54.2",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-router-dom": "^7.6.2"

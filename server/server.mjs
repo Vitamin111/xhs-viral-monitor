@@ -3,6 +3,7 @@ import express from 'express';
 import {
   createTask,
   deleteTask,
+  getCollectorSettings,
   getDashboardStats,
   getKeywordTrends,
   getNoteById,
@@ -14,6 +15,7 @@ import {
   markAlertRead,
   setTaskStatus,
   toggleFavorite,
+  updateCollectorSettings,
   updateTask,
 } from './store.mjs';
 
@@ -65,7 +67,7 @@ app.get('/api/notes/:id', (req, res) => {
     ...note,
     ruleName: '爆款识别规则 v1',
     ruleReason: '收藏数高于类目 P90，且增长率仍处于核心爆发窗口。',
-    scoreBreakdown: ['收藏分 95', '增长分 88', '评论分 73', '时间衰减 10'],
+    scoreBreakdown: ['收藏分 95', '增长分 88', '评论分 73', '时效衰减 10'],
     favoriteFolder: favorite?.folder,
     favoriteRemark: favorite?.remark,
     favoriteTags: favorite?.tags,
@@ -167,7 +169,12 @@ app.get('/api/favorites', (_req, res) => {
 });
 
 app.post('/api/favorites/toggle', (req, res) => {
-  const { noteId, folder = '默认收藏夹', tags = ['待复盘'], remark = '来自详情页收藏。' } = req.body ?? {};
+  const {
+    noteId,
+    folder = '默认收藏夹',
+    tags = ['待复盘'],
+    remark = '来自详情页收藏。',
+  } = req.body ?? {};
   const note = getNoteById(noteId);
 
   if (!note) {
@@ -194,6 +201,20 @@ app.post('/api/favorites/toggle', (req, res) => {
       note,
     },
   });
+});
+
+app.get('/api/settings/collector', (_req, res) => {
+  res.json(getCollectorSettings());
+});
+
+app.put('/api/settings/collector', (req, res) => {
+  const { enabledTracks, headedMode, manualLoginRequired } = req.body ?? {};
+  const updated = updateCollectorSettings({
+    enabledTracks: Array.isArray(enabledTracks) ? enabledTracks : undefined,
+    headedMode: typeof headedMode === 'boolean' ? headedMode : undefined,
+    manualLoginRequired: typeof manualLoginRequired === 'boolean' ? manualLoginRequired : undefined,
+  });
+  res.json(updated);
 });
 
 app.listen(port, () => {

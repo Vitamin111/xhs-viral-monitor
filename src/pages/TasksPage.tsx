@@ -121,7 +121,7 @@ export function TasksPage() {
     <div className="page">
       <SectionHeader
         title="监控中心"
-        description="管理关键词、品牌、达人和竞品监控任务。"
+        description="管理关键词、品牌、作者和竞品监控任务。"
         actions={
           <button className="button" onClick={openCreateForm}>
             新建任务
@@ -256,7 +256,7 @@ export function TasksPage() {
           <div className="stack">
             <div className="template-card">
               <strong>关键词雷达</strong>
-              <p>适合护肤、穿搭、家居等内容团队，重点发现新内容热度变化。</p>
+              <p>适合护肤、穿搭、美食和香氛类内容团队，重点发现新内容热度变化。</p>
             </div>
             <div className="template-card">
               <strong>竞品脉冲监控</strong>

@@ -12,7 +12,7 @@ describe('NoteDetailPage', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText('敏感肌修护面霜测评，48小时收藏暴涨')).toBeInTheDocument();
+    expect(screen.getByText('敏感肌修护面霜测评，48 小时收藏暴涨')).toBeInTheDocument();
     expect(await screen.findByText('爆款识别规则 v1')).toBeInTheDocument();
     expect(await screen.findByText('已收藏到 护肤爆款')).toBeInTheDocument();
     expect(screen.getByText('89.4')).toBeInTheDocument();

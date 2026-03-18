@@ -33,8 +33,8 @@ export function AppLayout() {
         </nav>
         <div className="sidebar__card">
           <div className="sidebar__label">今日建议</div>
-          <strong>优先跟进护肤与通勤穿搭赛道</strong>
-          <p>这两个类目今天的收藏效率显著高于过去 7 天均值。</p>
+          <strong>优先复盘护肤和通勤穿搭赛道</strong>
+          <p>这两个赛道今天的收藏效率明显高于过去 7 天均值，适合优先做内容拆解。</p>
         </div>
       </aside>
       <main className="main">
@@ -44,7 +44,7 @@ export function AppLayout() {
             <h1 className="topbar__title">爆款监控工作台</h1>
           </div>
           <div className="topbar__actions">
-            <input className="search" placeholder="搜索关键词、品牌、达人" />
+            <input className="search" placeholder="搜索关键词、品牌、作者" />
             <div className="avatar">PM</div>
           </div>
         </header>

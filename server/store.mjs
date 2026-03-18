@@ -36,6 +36,10 @@ function nextId(tableName) {
   return Number(row.max_id) + 1;
 }
 
+function formatLocalTimestamp(date = new Date()) {
+  return date.toISOString().slice(0, 16).replace('T', ' ');
+}
+
 function mapNote(row) {
   return {
     id: row.id,
@@ -95,6 +99,19 @@ function mapFavorite(row) {
     tags: parseJson(row.tags_json, []),
     remark: row.remark,
     savedAt: row.saved_at,
+  };
+}
+
+function mapCollectorSettings(row) {
+  return {
+    platformName: row.platform_name,
+    loginStatus: row.login_status,
+    manualLoginRequired: Boolean(row.manual_login_required),
+    headedMode: Boolean(row.headed_mode),
+    sessionFile: row.session_file,
+    lastLoginAt: row.last_login_at,
+    lastCollectAt: row.last_collect_at,
+    enabledTracks: parseJson(row.enabled_tracks_json, []),
   };
 }
 
@@ -167,7 +184,168 @@ function initSchema() {
       score REAL NOT NULL,
       delta TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS collector_settings (
+      id INTEGER PRIMARY KEY,
+      platform_name TEXT NOT NULL,
+      login_status TEXT NOT NULL,
+      manual_login_required INTEGER NOT NULL,
+      headed_mode INTEGER NOT NULL,
+      session_file TEXT NOT NULL,
+      last_login_at TEXT,
+      last_collect_at TEXT,
+      enabled_tracks_json TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS collection_runs (
+      id INTEGER PRIMARY KEY,
+      started_at TEXT NOT NULL,
+      finished_at TEXT,
+      status TEXT NOT NULL,
+      triggered_by TEXT NOT NULL,
+      notes_count INTEGER NOT NULL DEFAULT 0,
+      error_message TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS note_sources (
+      id INTEGER PRIMARY KEY,
+      note_id INTEGER NOT NULL,
+      platform TEXT NOT NULL,
+      source_url TEXT NOT NULL UNIQUE,
+      source_note_id TEXT,
+      track_name TEXT NOT NULL,
+      keyword TEXT NOT NULL,
+      collected_at TEXT NOT NULL,
+      raw_json TEXT NOT NULL
+    );
   `);
+}
+
+function upsertSeedData(seed) {
+  const noteInsert = db.prepare(`
+    INSERT OR REPLACE INTO notes (
+      id, title, author_name, publish_time, category, brand_name, cover_gradient,
+      like_count, favorite_count, comment_count, engagement_rate, growth_rate,
+      viral_score, viral_level, keywords_json, summary
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  const taskInsert = db.prepare(`
+    INSERT OR REPLACE INTO tasks (
+      id, task_name, task_type, status, targets_json, cadence,
+      last_run_at, next_run_at, viral_count, alert_count, fail_count
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  const alertInsert = db.prepare(`
+    INSERT OR REPLACE INTO alerts (
+      id, alert_type, level, title, reason, task_name, created_at_label, note_id, is_read
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  const favoriteInsert = db.prepare(`
+    INSERT OR REPLACE INTO favorites (
+      id, note_id, folder, tags_json, remark, saved_at
+    ) VALUES (?, ?, ?, ?, ?, ?)
+  `);
+
+  const dashboardInsert = db.prepare(`
+    INSERT OR REPLACE INTO dashboard_stats (id, label, value, change_value)
+    VALUES (?, ?, ?, ?)
+  `);
+
+  const trendInsert = db.prepare(`
+    INSERT OR REPLACE INTO keyword_trends (id, keyword, score, delta)
+    VALUES (?, ?, ?, ?)
+  `);
+
+  for (const note of seed.notes) {
+    noteInsert.run(
+      note.id,
+      note.title,
+      note.authorName,
+      note.publishTime,
+      note.category,
+      note.brandName,
+      note.coverGradient,
+      note.likeCount,
+      note.favoriteCount,
+      note.commentCount,
+      note.engagementRate,
+      note.growthRate,
+      note.viralScore,
+      note.viralLevel,
+      stringifyJson(note.keywords),
+      note.summary,
+    );
+  }
+
+  for (const task of seed.tasks) {
+    taskInsert.run(
+      task.id,
+      task.taskName,
+      task.taskType,
+      task.status,
+      stringifyJson(task.targets),
+      task.cadence,
+      task.lastRunAt,
+      task.nextRunAt,
+      task.viralCount,
+      task.alertCount,
+      task.failCount,
+    );
+  }
+
+  for (const alert of seed.alerts) {
+    alertInsert.run(
+      alert.id,
+      alert.alertType,
+      alert.level,
+      alert.title,
+      alert.reason,
+      alert.taskName,
+      alert.createdAt,
+      alert.noteId ?? null,
+      alert.read ? 1 : 0,
+    );
+  }
+
+  for (const favorite of seed.favorites) {
+    favoriteInsert.run(
+      favorite.id,
+      favorite.noteId,
+      favorite.folder,
+      stringifyJson(favorite.tags),
+      favorite.remark,
+      favorite.savedAt,
+    );
+  }
+
+  seed.dashboardStats.forEach((item, index) => {
+    dashboardInsert.run(index + 1, item.label, item.value, item.change);
+  });
+
+  seed.keywordTrends.forEach((item, index) => {
+    trendInsert.run(index + 1, item.keyword, item.score, item.delta);
+  });
+
+  const settings = seed.collectorSettings;
+  db.prepare(`
+    INSERT OR IGNORE INTO collector_settings (
+      id, platform_name, login_status, manual_login_required, headed_mode,
+      session_file, last_login_at, last_collect_at, enabled_tracks_json
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    1,
+    settings.platformName,
+    settings.loginStatus,
+    settings.manualLoginRequired ? 1 : 0,
+    settings.headedMode ? 1 : 0,
+    settings.sessionFile,
+    settings.lastLoginAt,
+    settings.lastCollectAt,
+    stringifyJson(settings.enabledTracks),
+  );
 }
 
 function seedDatabase() {
@@ -176,118 +354,10 @@ function seedDatabase() {
   }
 
   const seed = JSON.parse(fs.readFileSync(seedPath, 'utf8'));
+  const hasCollectedSources = rowCount('note_sources') > 0;
 
-  if (rowCount('notes') === 0) {
-    const insert = db.prepare(`
-      INSERT INTO notes (
-        id, title, author_name, publish_time, category, brand_name, cover_gradient,
-        like_count, favorite_count, comment_count, engagement_rate, growth_rate,
-        viral_score, viral_level, keywords_json, summary
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-    for (const note of seed.notes) {
-      insert.run(
-        note.id,
-        note.title,
-        note.authorName,
-        note.publishTime,
-        note.category,
-        note.brandName,
-        note.coverGradient,
-        note.likeCount,
-        note.favoriteCount,
-        note.commentCount,
-        note.engagementRate,
-        note.growthRate,
-        note.viralScore,
-        note.viralLevel,
-        stringifyJson(note.keywords),
-        note.summary,
-      );
-    }
-  }
-
-  if (rowCount('tasks') === 0) {
-    const insert = db.prepare(`
-      INSERT INTO tasks (
-        id, task_name, task_type, status, targets_json, cadence,
-        last_run_at, next_run_at, viral_count, alert_count, fail_count
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-    for (const task of seed.tasks) {
-      insert.run(
-        task.id,
-        task.taskName,
-        task.taskType,
-        task.status,
-        stringifyJson(task.targets),
-        task.cadence,
-        task.lastRunAt,
-        task.nextRunAt,
-        task.viralCount,
-        task.alertCount,
-        task.failCount,
-      );
-    }
-  }
-
-  if (rowCount('alerts') === 0) {
-    const insert = db.prepare(`
-      INSERT INTO alerts (
-        id, alert_type, level, title, reason, task_name, created_at_label, note_id, is_read
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-    for (const alert of seed.alerts) {
-      insert.run(
-        alert.id,
-        alert.alertType,
-        alert.level,
-        alert.title,
-        alert.reason,
-        alert.taskName,
-        alert.createdAt,
-        alert.noteId ?? null,
-        alert.read ? 1 : 0,
-      );
-    }
-  }
-
-  if (rowCount('favorites') === 0) {
-    const insert = db.prepare(`
-      INSERT INTO favorites (
-        id, note_id, folder, tags_json, remark, saved_at
-      ) VALUES (?, ?, ?, ?, ?, ?)
-    `);
-    for (const favorite of seed.favorites) {
-      insert.run(
-        favorite.id,
-        favorite.noteId,
-        favorite.folder,
-        stringifyJson(favorite.tags),
-        favorite.remark,
-        favorite.savedAt,
-      );
-    }
-  }
-
-  if (rowCount('dashboard_stats') === 0) {
-    const insert = db.prepare(`
-      INSERT INTO dashboard_stats (id, label, value, change_value)
-      VALUES (?, ?, ?, ?)
-    `);
-    seed.dashboardStats.forEach((item, index) => {
-      insert.run(index + 1, item.label, item.value, item.change);
-    });
-  }
-
-  if (rowCount('keyword_trends') === 0) {
-    const insert = db.prepare(`
-      INSERT INTO keyword_trends (id, keyword, score, delta)
-      VALUES (?, ?, ?, ?)
-    `);
-    seed.keywordTrends.forEach((item, index) => {
-      insert.run(index + 1, item.keyword, item.score, item.delta);
-    });
+  if (rowCount('notes') === 0 || !hasCollectedSources) {
+    upsertSeedData(seed);
   }
 }
 
@@ -307,7 +377,7 @@ export function getKeywordTrends() {
 }
 
 export function listNotes({ keyword = '', level = 'ALL' } = {}) {
-  const rows = db.prepare('SELECT * FROM notes ORDER BY publish_time DESC').all();
+  const rows = db.prepare('SELECT * FROM notes ORDER BY publish_time DESC, id DESC').all();
   const normalizedKeyword = keyword.trim().toLowerCase();
   const normalizedLevel = level.toUpperCase();
 
@@ -335,7 +405,8 @@ export function listTasks() {
 
 export function createTask({ taskName, taskType, targets, cadence }) {
   const id = nextId('tasks');
-  const nextRunAt = new Date(Date.now() + 60 * 60 * 1000).toISOString().slice(0, 16).replace('T', ' ');
+  const nextRunAt = formatLocalTimestamp(new Date(Date.now() + 60 * 60 * 1000));
+
   db.prepare(`
     INSERT INTO tasks (
       id, task_name, task_type, status, targets_json, cadence,
@@ -354,6 +425,7 @@ export function createTask({ taskName, taskType, targets, cadence }) {
     0,
     0,
   );
+
   return getTaskById(id);
 }
 
@@ -368,6 +440,7 @@ export function updateTask(id, { taskName, taskType, targets, cadence, status })
     SET task_name = ?, task_type = ?, targets_json = ?, cadence = ?, status = ?
     WHERE id = ?
   `).run(taskName, taskType, stringifyJson(targets), cadence, status, Number(id));
+
   return getTaskById(id);
 }
 
@@ -381,6 +454,7 @@ export function deleteTask(id) {
   if (!task) {
     return null;
   }
+
   db.prepare('DELETE FROM tasks WHERE id = ?').run(Number(id));
   return task;
 }
@@ -407,7 +481,7 @@ export function toggleFavorite({ noteId, folder, tags, remark }) {
   }
 
   const id = nextId('favorites');
-  const savedAt = new Date().toISOString().slice(0, 16).replace('T', ' ');
+  const savedAt = formatLocalTimestamp();
   db.prepare(`
     INSERT INTO favorites (id, note_id, folder, tags_json, remark, saved_at)
     VALUES (?, ?, ?, ?, ?, ?)
@@ -415,6 +489,166 @@ export function toggleFavorite({ noteId, folder, tags, remark }) {
 
   const created = db.prepare('SELECT * FROM favorites WHERE id = ?').get(id);
   return { favorited: true, favorite: mapFavorite(created) };
+}
+
+export function getCollectorSettings() {
+  const row = db.prepare('SELECT * FROM collector_settings WHERE id = 1').get();
+  return mapCollectorSettings(row);
+}
+
+export function updateCollectorSettings({ enabledTracks, headedMode, manualLoginRequired }) {
+  const current = getCollectorSettings();
+  db.prepare(`
+    UPDATE collector_settings
+    SET enabled_tracks_json = ?, headed_mode = ?, manual_login_required = ?
+    WHERE id = 1
+  `).run(
+    stringifyJson(enabledTracks ?? current.enabledTracks),
+    (headedMode ?? current.headedMode) ? 1 : 0,
+    (manualLoginRequired ?? current.manualLoginRequired) ? 1 : 0,
+  );
+
+  return getCollectorSettings();
+}
+
+export function setCollectorLoginStatus(loginStatus, lastLoginAt = formatLocalTimestamp()) {
+  db.prepare(`
+    UPDATE collector_settings
+    SET login_status = ?, last_login_at = ?
+    WHERE id = 1
+  `).run(loginStatus, lastLoginAt);
+
+  return getCollectorSettings();
+}
+
+export function setCollectorCollectTime(lastCollectAt = formatLocalTimestamp()) {
+  db.prepare(`
+    UPDATE collector_settings
+    SET last_collect_at = ?
+    WHERE id = 1
+  `).run(lastCollectAt);
+
+  return getCollectorSettings();
+}
+
+export function createCollectionRun(triggeredBy = 'manual') {
+  const id = nextId('collection_runs');
+  db.prepare(`
+    INSERT INTO collection_runs (id, started_at, status, triggered_by, notes_count, error_message)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `).run(id, formatLocalTimestamp(), 'RUNNING', triggeredBy, 0, null);
+  return id;
+}
+
+export function finishCollectionRun(id, { status, notesCount = 0, errorMessage = null } = {}) {
+  db.prepare(`
+    UPDATE collection_runs
+    SET finished_at = ?, status = ?, notes_count = ?, error_message = ?
+    WHERE id = ?
+  `).run(formatLocalTimestamp(), status ?? 'SUCCESS', notesCount, errorMessage, Number(id));
+}
+
+export function listCollectionRuns(limit = 10) {
+  return db.prepare(`
+    SELECT * FROM collection_runs
+    ORDER BY id DESC
+    LIMIT ?
+  `).all(Number(limit));
+}
+
+export function upsertCollectedNotes(items) {
+  const inserted = [];
+  const findBySource = db.prepare('SELECT * FROM note_sources WHERE source_url = ?');
+  const findByNoteId = db.prepare('SELECT * FROM notes WHERE id = ?');
+  const insertNote = db.prepare(`
+    INSERT INTO notes (
+      id, title, author_name, publish_time, category, brand_name, cover_gradient,
+      like_count, favorite_count, comment_count, engagement_rate, growth_rate,
+      viral_score, viral_level, keywords_json, summary
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+  const updateNote = db.prepare(`
+    UPDATE notes
+    SET title = ?, author_name = ?, publish_time = ?, category = ?, brand_name = ?, cover_gradient = ?,
+        like_count = ?, favorite_count = ?, comment_count = ?, engagement_rate = ?, growth_rate = ?,
+        viral_score = ?, viral_level = ?, keywords_json = ?, summary = ?
+    WHERE id = ?
+  `);
+  const insertSource = db.prepare(`
+    INSERT INTO note_sources (
+      id, note_id, platform, source_url, source_note_id, track_name, keyword, collected_at, raw_json
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+  const updateSource = db.prepare(`
+    UPDATE note_sources
+    SET track_name = ?, keyword = ?, collected_at = ?, raw_json = ?, source_note_id = ?
+    WHERE id = ?
+  `);
+
+  for (const item of items) {
+    const sourceUrl = item.sourceUrl;
+    if (!sourceUrl) {
+      continue;
+    }
+
+    const existingSource = findBySource.get(sourceUrl);
+    const payload = [
+      item.title,
+      item.authorName,
+      item.publishTime,
+      item.category,
+      item.brandName,
+      item.coverGradient,
+      item.likeCount,
+      item.favoriteCount,
+      item.commentCount,
+      item.engagementRate,
+      item.growthRate,
+      item.viralScore,
+      item.viralLevel,
+      stringifyJson(item.keywords),
+      item.summary,
+    ];
+
+    let noteId;
+    if (existingSource) {
+      noteId = existingSource.note_id;
+      updateNote.run(...payload, noteId);
+      updateSource.run(
+        item.trackName,
+        item.searchKeyword,
+        item.collectedAt ?? formatLocalTimestamp(),
+        JSON.stringify(item.raw ?? {}),
+        item.sourceNoteId ?? null,
+        existingSource.id,
+      );
+    } else {
+      noteId = nextId('notes');
+      insertNote.run(noteId, ...payload);
+      insertSource.run(
+        nextId('note_sources'),
+        noteId,
+        item.platform ?? 'xiaohongshu',
+        sourceUrl,
+        item.sourceNoteId ?? null,
+        item.trackName,
+        item.searchKeyword,
+        item.collectedAt ?? formatLocalTimestamp(),
+        JSON.stringify(item.raw ?? {}),
+      );
+    }
+
+    const saved = findByNoteId.get(noteId);
+    if (saved) {
+      inserted.push(mapNote(saved));
+    }
+  }
+
+  if (inserted.length > 0) {
+    setCollectorCollectTime();
+  }
+
+  return inserted;
 }
 
 export function getDatabasePath() {

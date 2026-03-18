@@ -18,8 +18,8 @@ export function NoteDetailPage() {
     return {
       ...note,
       ruleName: '爆款识别规则 v1',
-      ruleReason: '收藏数高于类目 P90，且增长率仍处于核心爆发窗口。',
-      scoreBreakdown: ['收藏分 95', '增长分 88', '评论分 73', '时间衰减 10'],
+      ruleReason: '收藏量高于类目 P90，且短周期增速仍位于核心爆发窗口。',
+      scoreBreakdown: ['收藏分 95', '增长分 88', '评论分 73', '时效衰减 10'],
       favoriteFolder: favorite?.folder,
       favoriteRemark: favorite?.remark,
       favoriteTags: favorite?.tags,
@@ -125,7 +125,7 @@ export function NoteDetailPage() {
           <SectionHeader title="复盘备注" description="沉淀后续选题和策略可复用的结论。" />
           <div className="favorite-box">
             <strong>{note.favoriteFolder ? `已收藏到 ${note.favoriteFolder}` : '暂未收藏'}</strong>
-            <p>{note.favoriteRemark ?? '建议记录标题结构、封面元素和评论里的高频诉求。'}</p>
+            <p>{note.favoriteRemark ?? '建议记录标题结构、封面元素和评论区里出现频率最高的需求点。'}</p>
             <div className="chips">
               {(note.favoriteTags ?? ['高收藏', '对比型封面']).map((tag) => (
                 <span key={tag} className="chip">

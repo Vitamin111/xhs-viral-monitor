@@ -94,3 +94,21 @@ export interface FavoriteToggleResponse {
 export interface UpdateTaskPayload extends CreateTaskPayload {
   status?: TaskItem['status'];
 }
+
+export interface CollectorTrack {
+  id: string;
+  name: string;
+  keywords: string[];
+  enabled: boolean;
+}
+
+export interface CollectorSettings {
+  platformName: string;
+  loginStatus: string;
+  manualLoginRequired: boolean;
+  headedMode: boolean;
+  sessionFile: string;
+  lastLoginAt: string | null;
+  lastCollectAt: string | null;
+  enabledTracks: CollectorTrack[];
+}
