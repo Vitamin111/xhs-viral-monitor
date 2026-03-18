@@ -1,0 +1,37 @@
+node_modules/
+dist/
+.DS_Store
+*.log
+*.tsbuildinfo
+vite.config.js
+vite.config.d.ts
+
+# local browser and automation artifacts
+.chrome-*/
+*.png
+*.html
+*.txt
+!index.html
+boss-controls.json
+boss-employee-reset-scan.json
+employee-buttons.json
+employee-edit-check.json
+employee-inputs.json
+employee-mask-check.json
+employee-search-check.json
+hunyu_v141_results.json
+menu-debug.json
+menu-structure.json
+platform-employee-reset-scan.json
+product-links.json
+submenu-test.json
+visible_browser_phone_scan.json
+visible_browser_test_results.json
+xmind-content.json
+scripts/hunyu_v141_check.py
+
+# keep project source and config tracked; ignore generated package manager logs only
+pnpm-debug.log*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
