@@ -78,3 +78,10 @@ export interface NoteDetail extends NoteSummary {
 export interface FavoriteViewItem extends FavoriteItem {
   note: NoteSummary;
 }
+
+export interface CreateTaskPayload {
+  taskName: string;
+  taskType: 'KEYWORD' | 'BRAND' | 'AUTHOR' | 'COMPETITOR' | 'CATEGORY';
+  targets: string[];
+  cadence: string;
+}

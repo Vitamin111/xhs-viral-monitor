@@ -124,6 +124,8 @@ const tasks = [
   },
 ];
 
+let nextTaskId = tasks.length + 1;
+
 const alerts = [
   {
     id: 1,
@@ -260,6 +262,34 @@ app.get('/api/notes/:id', (req, res) => {
 
 app.get('/api/tasks', (_req, res) => {
   res.json(tasks);
+});
+
+app.post('/api/tasks', (req, res) => {
+  const { taskName, taskType, targets, cadence } = req.body ?? {};
+
+  if (!taskName || !taskType || !Array.isArray(targets) || targets.length === 0 || !cadence) {
+    res.status(400).json({ message: 'invalid task payload' });
+    return;
+  }
+
+  const now = new Date();
+  const nextRun = new Date(now.getTime() + 60 * 60 * 1000);
+  const task = {
+    id: nextTaskId++,
+    taskName: String(taskName),
+    taskType: String(taskType).toUpperCase(),
+    status: 'ACTIVE',
+    targets: targets.map((item) => String(item).trim()).filter(Boolean),
+    cadence: String(cadence),
+    lastRunAt: 'Not started',
+    nextRunAt: nextRun.toISOString().slice(0, 16).replace('T', ' '),
+    viralCount: 0,
+    alertCount: 0,
+    failCount: 0,
+  };
+
+  tasks.unshift(task);
+  res.status(201).json(task);
 });
 
 app.get('/api/alerts', (_req, res) => {

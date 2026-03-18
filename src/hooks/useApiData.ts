@@ -5,6 +5,7 @@ export function useApiData<T>(path: string, fallback: T) {
   const [data, setData] = useState<T>(fallback);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -34,7 +35,15 @@ export function useApiData<T>(path: string, fallback: T) {
     return () => {
       cancelled = true;
     };
-  }, [path]);
+  }, [path, reloadToken]);
 
-  return { data, loading, error };
+  return {
+    data,
+    loading,
+    error,
+    refresh() {
+      setReloadToken((value) => value + 1);
+    },
+    setData,
+  };
 }
