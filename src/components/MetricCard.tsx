@@ -9,7 +9,7 @@ export function MetricCard({ label, value, change }: MetricCardProps) {
     <article className="metric-card">
       <span>{label}</span>
       <strong>{value}</strong>
-      <em>{change} vs yesterday</em>
+      <em>较昨日 {change}</em>
     </article>
   );
 }

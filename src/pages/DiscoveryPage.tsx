@@ -74,7 +74,7 @@ export function DiscoveryPage() {
               <span>标题</span>
               <span>作者</span>
               <span>类目</span>
-              <span>互动</span>
+              <span>收藏</span>
               <span>爆款分</span>
               <span>等级</span>
             </div>

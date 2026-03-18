@@ -17,9 +17,9 @@ export function NoteDetailPage() {
 
     return {
       ...note,
-      ruleName: 'Viral Rule v1',
-      ruleReason: 'Save count is above category P90 and growth remains inside the prime discovery window.',
-      scoreBreakdown: ['save 95', 'growth 88', 'comment 73', 'time decay 10'],
+      ruleName: '爆款识别规则 v1',
+      ruleReason: '收藏数高于类目 P90，且增长率仍处于核心爆发窗口。',
+      scoreBreakdown: ['收藏分 95', '增长分 88', '评论分 73', '时间衰减 10'],
       favoriteFolder: favorite?.folder,
       favoriteRemark: favorite?.remark,
       favoriteTags: favorite?.tags,
@@ -46,14 +46,14 @@ export function NoteDetailPage() {
     <div className="page">
       <SectionHeader
         title={note.title}
-        description={`${note.authorName} · ${note.category} · Published ${note.publishTime}`}
+        description={`${note.authorName} · ${note.category} · 发布时间 ${note.publishTime}`}
         actions={
           <div className="inline-actions">
             <button className="button" onClick={toggleFavorite} disabled={favoriteBusy}>
-              {favoriteBusy ? 'Saving...' : note.favoriteFolder ? 'Remove Favorite' : 'Save Favorite'}
+              {favoriteBusy ? '保存中...' : note.favoriteFolder ? '取消收藏' : '加入收藏'}
             </button>
             <Link to="/discovery" className="button button--ghost">
-              Back to list
+              返回列表
             </Link>
           </div>
         }
@@ -75,30 +75,30 @@ export function NoteDetailPage() {
         </article>
 
         <article className="panel">
-          <SectionHeader title="Core Metrics" description="Computed from the latest snapshot." />
+          <SectionHeader title="核心指标" description="基于最近一次快照计算。" />
           <div className="stats-grid">
             <div className="stat-box">
-              <span>Likes</span>
+              <span>点赞</span>
               <strong>{formatNumber(note.likeCount)}</strong>
             </div>
             <div className="stat-box">
-              <span>Saves</span>
+              <span>收藏</span>
               <strong>{formatNumber(note.favoriteCount)}</strong>
             </div>
             <div className="stat-box">
-              <span>Comments</span>
+              <span>评论</span>
               <strong>{formatNumber(note.commentCount)}</strong>
             </div>
             <div className="stat-box">
-              <span>Efficiency</span>
+              <span>互动效率</span>
               <strong>{note.engagementRate}</strong>
             </div>
             <div className="stat-box">
-              <span>Growth Rate</span>
+              <span>增长率</span>
               <strong>{note.growthRate}</strong>
             </div>
             <div className="stat-box">
-              <span>Viral Score</span>
+              <span>爆款分</span>
               <strong>{note.viralScore}</strong>
             </div>
           </div>
@@ -107,7 +107,7 @@ export function NoteDetailPage() {
 
       <section className="panel-grid">
         <article className="panel">
-          <SectionHeader title="Rule Hit" description="Why this note is currently flagged by the system." />
+          <SectionHeader title="命中规则" description="解释这条内容为什么会被系统识别出来。" />
           <div className="rule-list">
             <div className="rule-item">
               <strong>{note.ruleName}</strong>
@@ -122,12 +122,12 @@ export function NoteDetailPage() {
         </article>
 
         <article className="panel">
-          <SectionHeader title="Review Notes" description="Capture reusable takeaways for future planning." />
+          <SectionHeader title="复盘备注" description="沉淀后续选题和策略可复用的结论。" />
           <div className="favorite-box">
-            <strong>{note.favoriteFolder ? `Saved to ${note.favoriteFolder}` : 'Not saved yet'}</strong>
-            <p>{note.favoriteRemark ?? 'Record title structure, visual cues, and the strongest user demand signals.'}</p>
+            <strong>{note.favoriteFolder ? `已收藏到 ${note.favoriteFolder}` : '暂未收藏'}</strong>
+            <p>{note.favoriteRemark ?? '建议记录标题结构、封面元素和评论里的高频诉求。'}</p>
             <div className="chips">
-              {(note.favoriteTags ?? ['high-save', 'before-after']).map((tag) => (
+              {(note.favoriteTags ?? ['高收藏', '对比型封面']).map((tag) => (
                 <span key={tag} className="chip">
                   {tag}
                 </span>
@@ -136,7 +136,7 @@ export function NoteDetailPage() {
           </div>
         </article>
       </section>
-      {noteState.error ? <p className="status-message">Detail API is unavailable, showing fallback data.</p> : null}
+      {noteState.error ? <p className="status-message">详情接口暂不可用，当前显示本地回退数据。</p> : null}
     </div>
   );
 }

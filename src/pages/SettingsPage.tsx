@@ -3,7 +3,7 @@ import { SectionHeader } from '../components/SectionHeader';
 export function SettingsPage() {
   return (
     <div className="page">
-      <SectionHeader title="设置" description="当前提供基础账号与通知设置占位，方便后续接真实后端接口。" />
+      <SectionHeader title="设置" description="当前提供基础账号和通知设置占位，方便后续接入真实后端接口。" />
       <section className="panel-grid">
         <article className="panel">
           <h3>账号信息</h3>

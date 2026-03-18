@@ -17,9 +17,9 @@ export function DashboardPage() {
     <div className="page">
       <section className="hero">
         <div>
-          <div className="eyebrow">Today Focus</div>
-          <h2>热点在快速向“高收藏、强模板、强对比”的内容靠拢</h2>
-          <p>建议优先追踪护肤修护、通勤穿搭和打工人早餐三个方向，并观察新内容发布后 6 小时内的收藏效率。</p>
+          <div className="eyebrow">今日重点</div>
+          <h2>热点内容正在快速向“高收藏、强模板、强对比”方向集中</h2>
+          <p>建议优先跟进护肤修护、通勤穿搭和打工人早餐三个方向，并重点观察新内容发布后 6 小时内的收藏效率。</p>
         </div>
         <div className="hero__panel">
           <span className="hero__label">系统建议</span>
