@@ -9,7 +9,7 @@ import {
   getNoteById,
   getNoteSourceByNoteId,
   getTaskById,
-  listCollectedNotes,
+  listCollectedNotesPaged,
   listAlerts,
   listFavorites,
   listNotes,
@@ -23,6 +23,38 @@ import {
 
 const app = express();
 const port = Number(process.env.PORT || 8787);
+
+function buildRuleDetail(note, source) {
+  const saveRatio = note.likeCount > 0 ? note.favoriteCount / note.likeCount : 0;
+  const commentRatio = note.likeCount > 0 ? note.commentCount / note.likeCount : 0;
+  const levelLabel =
+    note.viralLevel === 'VIRAL' ? '爆款' : note.viralLevel === 'POTENTIAL' ? '潜力爆款' : '普通内容';
+
+  return {
+    ruleName: '爆款识别规则 v2',
+    ruleReason: `系统基于收藏、增长、评论和时效四类信号计算爆款分 ${note.viralScore}，当前判定为${levelLabel}。`,
+    scoreBreakdown: [
+      `收藏效率 ${(saveRatio * 100).toFixed(0)}%`,
+      `增长率 ${note.growthRate}`,
+      `评论互动 ${(commentRatio * 100).toFixed(0)}%`,
+      `爆款分 ${note.viralScore}`,
+    ],
+    ruleHighlights: [
+      note.favoriteCount >= 300
+        ? '收藏量已进入高热内容区间，说明用户有较强的保存和回看意愿。'
+        : '收藏量处于可跟踪区间，具备继续观察价值。',
+      note.growthRate >= 1.5
+        ? `增长率 ${note.growthRate}，说明内容仍处在热度扩散阶段。`
+        : `增长率 ${note.growthRate}，说明内容热度相对平稳。`,
+      note.commentCount >= 80
+        ? '评论量较高，说明内容除了被收藏，也具备讨论度。'
+        : '评论量中等，更偏向实用型内容的收藏表现。',
+      source?.searchKeyword
+        ? `该内容命中关键词“${source.searchKeyword}”，来自 ${source.trackName} 赛道。`
+        : '当前为本地演示或未记录采集来源的数据。',
+    ],
+  };
+}
 
 app.use(cors());
 app.use(express.json());
@@ -66,11 +98,14 @@ app.get('/api/notes/:id', (req, res) => {
 
   const favorite = listFavorites().find((item) => item.noteId === note.id);
   const source = getNoteSourceByNoteId(note.id);
+  const ruleDetail = buildRuleDetail(note, source);
+
   res.json({
     ...note,
-    ruleName: '爆款识别规则 v1',
-    ruleReason: '收藏数高于类目 P90，且增长率仍处于核心爆发窗口。',
-    scoreBreakdown: ['收藏分 95', '增长分 88', '评论分 73', '时效衰减 10'],
+    ruleName: ruleDetail.ruleName,
+    ruleReason: ruleDetail.ruleReason,
+    scoreBreakdown: ruleDetail.scoreBreakdown,
+    ruleHighlights: ruleDetail.ruleHighlights,
     favoriteFolder: favorite?.folder,
     favoriteRemark: favorite?.remark,
     favoriteTags: favorite?.tags,
@@ -168,10 +203,12 @@ app.post('/api/alerts/:id/read', (req, res) => {
 });
 
 app.get('/api/favorites', (_req, res) => {
-  const favorites = listFavorites().map((favorite) => {
-    const note = getNoteById(favorite.noteId);
-    return note ? { ...favorite, note } : null;
-  }).filter(Boolean);
+  const favorites = listFavorites()
+    .map((favorite) => {
+      const note = getNoteById(favorite.noteId);
+      return note ? { ...favorite, note } : null;
+    })
+    .filter(Boolean);
   res.json(favorites);
 });
 
@@ -227,7 +264,9 @@ app.put('/api/settings/collector', (req, res) => {
 app.get('/api/collector/notes', (req, res) => {
   const keyword = String(req.query.keyword ?? '');
   const track = String(req.query.track ?? 'ALL');
-  res.json(listCollectedNotes({ keyword, track }));
+  const page = Number(req.query.page ?? 1);
+  const pageSize = Number(req.query.pageSize ?? 20);
+  res.json(listCollectedNotesPaged({ keyword, track, page, pageSize }));
 });
 
 app.listen(port, () => {

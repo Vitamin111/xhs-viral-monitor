@@ -17,9 +17,15 @@ export function NoteDetailPage() {
 
     return {
       ...note,
-      ruleName: '爆款识别规则 v1',
-      ruleReason: '收藏量高于类目 P90，且短周期增速仍位于核心爆发窗口。',
-      scoreBreakdown: ['收藏分 95', '增长分 88', '评论分 73', '时效衰减 10'],
+      ruleName: '爆款识别规则 v2',
+      ruleReason: `系统基于收藏、增长、评论和时效四类信号计算爆款分 ${note.viralScore}。`,
+      scoreBreakdown: ['收藏效率 75%', '增长率 1.82', '评论互动 19%', `爆款分 ${note.viralScore}`],
+      ruleHighlights: [
+        '收藏量明显高于普通内容，说明用户愿意保存或回看。',
+        '增长率仍在高位，说明内容还处于扩散期。',
+        '评论区有持续互动，说明内容不只是被浏览，也引发了表达。',
+        '建议复盘标题结构、封面元素和评论区高频问题。',
+      ],
       favoriteFolder: favorite?.folder,
       favoriteRemark: favorite?.remark,
       favoriteTags: favorite?.tags,
@@ -121,6 +127,13 @@ export function NoteDetailPage() {
             <div className="rule-breakdown">
               {note.scoreBreakdown.map((item) => (
                 <span key={item}>{item}</span>
+              ))}
+            </div>
+            <div className="rule-highlight-list">
+              {note.ruleHighlights.map((item) => (
+                <div key={item} className="rule-highlight-item">
+                  {item}
+                </div>
               ))}
             </div>
             {note.sourceUrl ? (

@@ -601,6 +601,13 @@ select {
   align-items: center;
 }
 
+.collector-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
 .table--collector {
   gap: 0;
 }
@@ -617,6 +624,29 @@ select {
   border-radius: 16px;
   background: #fff7ed;
   color: #9a3412;
+}
+
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(226, 232, 240, 0.7);
+  color: #64748b;
+}
+
+.rule-highlight-list {
+  display: grid;
+  gap: 10px;
+}
+
+.rule-highlight-item {
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #f8fafc;
+  color: #334155;
 }
 
 .health-list {

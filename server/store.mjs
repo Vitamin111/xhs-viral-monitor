@@ -142,6 +142,15 @@ function mapCollectedNote(row) {
   };
 }
 
+function normalizePositiveInteger(value, fallback) {
+  const parsed = Number.parseInt(String(value), 10);
+  if (Number.isNaN(parsed) || parsed <= 0) {
+    return fallback;
+  }
+
+  return parsed;
+}
+
 function initSchema() {
   db.exec(`
     CREATE TABLE IF NOT EXISTS notes (
@@ -477,6 +486,31 @@ export function listCollectedNotes({ keyword = '', track = 'ALL' } = {}) {
       const matchesTrack = normalizedTrack === 'all' || item.trackName.toLowerCase() === normalizedTrack;
       return matchesKeyword && matchesTrack;
     });
+}
+
+export function listCollectedNotesPaged({
+  keyword = '',
+  track = 'ALL',
+  page = 1,
+  pageSize = 20,
+} = {}) {
+  const allItems = listCollectedNotes({ keyword, track });
+  const normalizedPage = normalizePositiveInteger(page, 1);
+  const normalizedPageSize = normalizePositiveInteger(pageSize, 20);
+  const total = allItems.length;
+  const totalPages = Math.max(1, Math.ceil(total / normalizedPageSize));
+  const safePage = Math.min(normalizedPage, totalPages);
+  const offset = (safePage - 1) * normalizedPageSize;
+  const tracks = Array.from(new Set(listCollectedNotes().map((item) => item.trackName)));
+
+  return {
+    items: allItems.slice(offset, offset + normalizedPageSize),
+    total,
+    page: safePage,
+    pageSize: normalizedPageSize,
+    totalPages,
+    tracks,
+  };
 }
 
 export function listTasks() {

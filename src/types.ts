@@ -70,6 +70,7 @@ export interface NoteDetail extends NoteSummary {
   ruleName: string;
   ruleReason: string;
   scoreBreakdown: string[];
+  ruleHighlights: string[];
   favoriteFolder?: string;
   favoriteRemark?: string;
   favoriteTags?: string[];
@@ -124,4 +125,13 @@ export interface CollectedNoteItem extends NoteSummary {
   trackName: string;
   searchKeyword: string;
   collectedAt: string;
+}
+
+export interface CollectedNotesResponse {
+  items: CollectedNoteItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  tracks: string[];
 }
