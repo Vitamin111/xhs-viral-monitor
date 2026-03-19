@@ -26,14 +26,14 @@ function createSearchUrl(keyword) {
   return `${searchBaseUrl}?${params.toString()}`;
 }
 
-function waitForEnter(promptText) {
-  process.stdout.write(`${promptText}\n`);
+function waitForBrowserClosed(context) {
+  const browser = context.browser();
+  if (!browser) {
+    return Promise.resolve();
+  }
+
   return new Promise((resolve) => {
-    process.stdin.resume();
-    process.stdin.setEncoding('utf8');
-    process.stdin.once('data', () => {
-      resolve();
-    });
+    browser.once('disconnected', resolve);
   });
 }
 
@@ -178,10 +178,9 @@ export async function completeManualLogin() {
   const page = context.pages()[0] ?? await context.newPage();
   await page.goto('https://www.xiaohongshu.com/explore', { waitUntil: 'domcontentloaded' });
 
-  await waitForEnter('浏览器已打开，请在页面里手动登录小红书。登录完成后回到这个窗口按回车继续。');
-
+  process.stdout.write('浏览器已打开，请在页面里手动登录小红书。登录完成后直接关闭浏览器窗口，会话会自动保存。\n');
+  await waitForBrowserClosed(context);
   await setCollectorLoginStatus('已登录');
-  await context.close();
 }
 
 export async function collectTracksOnce({ limitPerKeyword = 8 } = {}) {
