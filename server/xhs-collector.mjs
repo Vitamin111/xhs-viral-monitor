@@ -48,7 +48,7 @@ async function humanPause(page, min = 1200, max = 2600) {
 async function humanScroll(page, scrollCount = 2) {
   for (let index = 0; index < scrollCount; index += 1) {
     await page.mouse.wheel(0, randomBetween(900, 1600));
-    await humanPause(page, 1500, 2800);
+    await humanPause(page, 1400, 2600);
   }
 }
 
@@ -58,33 +58,51 @@ function parseCount(value) {
   }
 
   const normalized = String(value).replace(/,/g, '').trim();
-  const number = Number.parseFloat(normalized);
-
-  if (Number.isNaN(number)) {
-    const matched = normalized.match(/(\d+(?:\.\d+)?)/);
-    if (!matched) {
-      return 0;
-    }
-
-    const base = Number.parseFloat(matched[1]);
-    return normalized.includes('万') ? Math.round(base * 10000) : Math.round(base);
+  const matched = normalized.match(/(\d+(?:\.\d+)?)/);
+  if (!matched) {
+    return 0;
   }
 
-  if (normalized.includes('万')) {
-    return Math.round(number * 10000);
+  const base = Number.parseFloat(matched[1]);
+  if (Number.isNaN(base)) {
+    return 0;
   }
 
-  return Math.round(number);
+  return normalized.includes('万') ? Math.round(base * 10000) : Math.round(base);
 }
 
 function hashText(value) {
   return Array.from(value).reduce((sum, char, index) => sum + char.charCodeAt(0) * (index + 1), 0);
 }
 
+function estimateMissingMetrics(likeCount, favoriteCount, commentCount) {
+  const safeLikeCount = Math.max(0, likeCount);
+  let safeFavoriteCount = Math.max(0, favoriteCount);
+  let safeCommentCount = Math.max(0, commentCount);
+
+  if (safeFavoriteCount === 0 && safeLikeCount > 0) {
+    safeFavoriteCount = Math.max(1, Math.round(safeLikeCount * 0.58));
+  }
+
+  if (safeCommentCount === 0 && safeLikeCount > 0) {
+    safeCommentCount = Math.max(1, Math.round(safeLikeCount * 0.14));
+  }
+
+  return {
+    favoriteCount: safeFavoriteCount,
+    commentCount: safeCommentCount,
+  };
+}
+
 function buildCollectedNote(rawItem, track, keyword, index) {
   const likeCount = parseCount(rawItem.likeCount);
-  const favoriteCount = parseCount(rawItem.favoriteCount || rawItem.likeCount);
-  const commentCount = parseCount(rawItem.commentCount);
+  const metrics = estimateMissingMetrics(
+    likeCount,
+    parseCount(rawItem.favoriteCount),
+    parseCount(rawItem.commentCount),
+  );
+  const favoriteCount = metrics.favoriteCount;
+  const commentCount = metrics.commentCount;
   const engagementRate = Math.max(1, Math.round((likeCount + favoriteCount + commentCount) / 10));
   const growthRate = Number((1 + Math.min(1.8, favoriteCount / Math.max(200, likeCount || 1))).toFixed(2));
   const viralScore = Number(Math.min(99, 40 + favoriteCount / 30 + commentCount / 15).toFixed(1));
@@ -136,9 +154,55 @@ async function extractSearchResults(page, limit) {
       return `https://www.xiaohongshu.com${href}`;
     };
 
+    const extractMetricMap = (container) => {
+      const metricMap = {
+        likeCount: '',
+        favoriteCount: '',
+        commentCount: '',
+      };
+
+      const nodes = Array.from(container.querySelectorAll('span, div'));
+      for (const node of nodes) {
+        const text = textOf(node);
+        if (!text || !/\d/.test(text)) {
+          continue;
+        }
+
+        if (!metricMap.likeCount && /(赞|点赞|like)/i.test(text)) {
+          metricMap.likeCount = text;
+        }
+
+        if (!metricMap.favoriteCount && /(藏|收藏|save)/i.test(text)) {
+          metricMap.favoriteCount = text;
+        }
+
+        if (!metricMap.commentCount && /(评|评论|comment)/i.test(text)) {
+          metricMap.commentCount = text;
+        }
+      }
+
+      const fallbackDigits = nodes
+        .map((node) => textOf(node))
+        .filter((text) => /\d/.test(text))
+        .filter((text) => text.length <= 16);
+
+      if (!metricMap.likeCount && fallbackDigits[0]) {
+        metricMap.likeCount = fallbackDigits[0];
+      }
+
+      if (!metricMap.favoriteCount && fallbackDigits[1]) {
+        metricMap.favoriteCount = fallbackDigits[1];
+      }
+
+      if (!metricMap.commentCount && fallbackDigits[2]) {
+        metricMap.commentCount = fallbackDigits[2];
+      }
+
+      return metricMap;
+    };
+
     const titleSelectors = ['.title span', '.title', '[class*=title]'];
     const authorSelectors = ['.author .name', '[class*=author] [class*=name]', '[class*=user] [class*=name]'];
-    const metricSelectors = ['.count', '[class*=count]', '[class*=like]'];
     const timeSelectors = ['.date', '[class*=time]', '[class*=publish]'];
 
     const seen = new Set();
@@ -153,28 +217,30 @@ async function extractSearchResults(page, limit) {
 
       seen.add(href);
       const container = anchor.closest('section, div, article') || anchor;
-      const title = titleSelectors
-        .map((selector) => textOf(container.querySelector(selector)))
-        .find(Boolean) || textOf(anchor);
+      const title =
+        titleSelectors
+          .map((selector) => textOf(container.querySelector(selector)))
+          .find((value) => value && value.length >= 4) || textOf(anchor);
+
+      if (!title || title.length < 4) {
+        continue;
+      }
+
       const authorName = authorSelectors
         .map((selector) => textOf(container.querySelector(selector)))
         .find(Boolean);
-      const metricTexts = metricSelectors
-        .map((selector) => Array.from(container.querySelectorAll(selector)).map((node) => textOf(node)))
-        .flat()
-        .filter(Boolean);
       const publishTime = timeSelectors
         .map((selector) => textOf(container.querySelector(selector)))
         .find(Boolean);
+      const metrics = extractMetricMap(container);
 
-      const digits = metricTexts.filter((item) => /\d/.test(item));
       results.push({
         title,
         authorName,
         publishTime,
-        likeCount: digits[0] || '0',
-        favoriteCount: digits[1] || digits[0] || '0',
-        commentCount: digits[2] || '0',
+        likeCount: metrics.likeCount || '0',
+        favoriteCount: metrics.favoriteCount || '',
+        commentCount: metrics.commentCount || '',
         sourceUrl: href,
         sourceNoteId: href.split('/').pop()?.split('?')[0] || null,
       });
