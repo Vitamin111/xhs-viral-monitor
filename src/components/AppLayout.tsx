@@ -3,6 +3,7 @@ import { NavLink, Outlet } from 'react-router-dom';
 const navItems = [
   { to: '/dashboard', label: '首页' },
   { to: '/discovery', label: '爆款发现' },
+  { to: '/collector', label: '真实采集' },
   { to: '/tasks', label: '监控中心' },
   { to: '/alerts', label: '预警中心' },
   { to: '/favorites', label: '收藏夹' },

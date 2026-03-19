@@ -37,6 +37,21 @@ function waitForBrowserClosed(context) {
   });
 }
 
+function randomBetween(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+async function humanPause(page, min = 1200, max = 2600) {
+  await page.waitForTimeout(randomBetween(min, max));
+}
+
+async function humanScroll(page, scrollCount = 2) {
+  for (let index = 0; index < scrollCount; index += 1) {
+    await page.mouse.wheel(0, randomBetween(900, 1600));
+    await humanPause(page, 1500, 2800);
+  }
+}
+
 function parseCount(value) {
   if (!value) {
     return 0;
@@ -44,11 +59,13 @@ function parseCount(value) {
 
   const normalized = String(value).replace(/,/g, '').trim();
   const number = Number.parseFloat(normalized);
+
   if (Number.isNaN(number)) {
     const matched = normalized.match(/(\d+(?:\.\d+)?)/);
     if (!matched) {
       return 0;
     }
+
     const base = Number.parseFloat(matched[1]);
     return normalized.includes('万') ? Math.round(base * 10000) : Math.round(base);
   }
@@ -102,7 +119,8 @@ function buildCollectedNote(rawItem, track, keyword, index) {
 }
 
 async function extractSearchResults(page, limit) {
-  await page.waitForTimeout(2500);
+  await humanPause(page, 2000, 3200);
+  await humanScroll(page, 2);
 
   return page.evaluate((maxCount) => {
     const textOf = (element) => element?.textContent?.replace(/\s+/g, ' ').trim() || '';
@@ -110,9 +128,11 @@ async function extractSearchResults(page, limit) {
       if (!href) {
         return '';
       }
+
       if (href.startsWith('http')) {
         return href;
       }
+
       return `https://www.xiaohongshu.com${href}`;
     };
 
@@ -211,6 +231,8 @@ export async function collectTracksOnce({ limitPerKeyword = 8 } = {}) {
         results.forEach((item, index) => {
           collectedItems.push(buildCollectedNote(item, track, keyword, index));
         });
+
+        await humanPause(page, 2500, 4500);
       }
     }
 

@@ -583,6 +583,42 @@ select {
   gap: 14px;
 }
 
+.collector-summary {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 18px;
+  align-items: stretch;
+}
+
+.collector-summary__card {
+  height: 100%;
+}
+
+.collector-track-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.table--collector {
+  gap: 0;
+}
+
+.table__row--collector {
+  grid-template-columns: 2.6fr 1fr 1fr 1.3fr 1.1fr 0.9fr;
+}
+
+.source-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: #fff7ed;
+  color: #9a3412;
+}
+
 .health-list {
   display: flex;
   flex-direction: column;
@@ -597,6 +633,10 @@ select {
   }
 
   .hero {
+    grid-template-columns: 1fr;
+  }
+
+  .collector-summary {
     grid-template-columns: 1fr;
   }
 

@@ -115,6 +115,33 @@ function mapCollectorSettings(row) {
   };
 }
 
+function mapCollectedNote(row) {
+  return {
+    id: row.id,
+    title: row.title,
+    authorName: row.author_name,
+    publishTime: row.publish_time,
+    category: row.category,
+    brandName: row.brand_name,
+    coverGradient: row.cover_gradient,
+    likeCount: row.like_count,
+    favoriteCount: row.favorite_count,
+    commentCount: row.comment_count,
+    engagementRate: row.engagement_rate,
+    growthRate: row.growth_rate,
+    viralScore: row.viral_score,
+    viralLevel: row.viral_level,
+    keywords: parseJson(row.keywords_json, []),
+    summary: row.summary,
+    sourceUrl: row.source_url,
+    sourceNoteId: row.source_note_id,
+    platform: row.platform,
+    trackName: row.track_name,
+    searchKeyword: row.keyword,
+    collectedAt: row.collected_at,
+  };
+}
+
 function initSchema() {
   db.exec(`
     CREATE TABLE IF NOT EXISTS notes (
@@ -397,6 +424,59 @@ export function listNotes({ keyword = '', level = 'ALL' } = {}) {
 export function getNoteById(id) {
   const row = db.prepare('SELECT * FROM notes WHERE id = ?').get(Number(id));
   return row ? mapNote(row) : null;
+}
+
+export function getNoteSourceByNoteId(id) {
+  const row = db.prepare(`
+    SELECT *
+    FROM note_sources
+    WHERE note_id = ?
+  `).get(Number(id));
+
+  if (!row) {
+    return null;
+  }
+
+  return {
+    sourceUrl: row.source_url,
+    sourceNoteId: row.source_note_id,
+    platform: row.platform,
+    trackName: row.track_name,
+    searchKeyword: row.keyword,
+    collectedAt: row.collected_at,
+  };
+}
+
+export function listCollectedNotes({ keyword = '', track = 'ALL' } = {}) {
+  const rows = db.prepare(`
+    SELECT
+      notes.*,
+      note_sources.source_url,
+      note_sources.source_note_id,
+      note_sources.platform,
+      note_sources.track_name,
+      note_sources.keyword,
+      note_sources.collected_at
+    FROM note_sources
+    INNER JOIN notes ON notes.id = note_sources.note_id
+    ORDER BY note_sources.collected_at DESC, note_sources.id DESC
+  `).all();
+
+  const normalizedKeyword = keyword.trim().toLowerCase();
+  const normalizedTrack = track.trim().toLowerCase();
+
+  return rows
+    .map(mapCollectedNote)
+    .filter((item) => {
+      const matchesKeyword =
+        !normalizedKeyword ||
+        item.title.toLowerCase().includes(normalizedKeyword) ||
+        item.authorName.toLowerCase().includes(normalizedKeyword) ||
+        item.searchKeyword.toLowerCase().includes(normalizedKeyword) ||
+        item.keywords.some((word) => word.toLowerCase().includes(normalizedKeyword));
+      const matchesTrack = normalizedTrack === 'all' || item.trackName.toLowerCase() === normalizedTrack;
+      return matchesKeyword && matchesTrack;
+    });
 }
 
 export function listTasks() {

@@ -73,6 +73,10 @@ export interface NoteDetail extends NoteSummary {
   favoriteFolder?: string;
   favoriteRemark?: string;
   favoriteTags?: string[];
+  sourceUrl?: string;
+  sourceTrackName?: string;
+  sourceKeyword?: string;
+  collectedAt?: string;
 }
 
 export interface FavoriteViewItem extends FavoriteItem {
@@ -111,4 +115,13 @@ export interface CollectorSettings {
   lastLoginAt: string | null;
   lastCollectAt: string | null;
   enabledTracks: CollectorTrack[];
+}
+
+export interface CollectedNoteItem extends NoteSummary {
+  sourceUrl: string;
+  sourceNoteId?: string | null;
+  platform: string;
+  trackName: string;
+  searchKeyword: string;
+  collectedAt: string;
 }

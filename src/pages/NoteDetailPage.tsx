@@ -49,6 +49,11 @@ export function NoteDetailPage() {
         description={`${note.authorName} · ${note.category} · 发布时间 ${note.publishTime}`}
         actions={
           <div className="inline-actions">
+            {note.sourceUrl ? (
+              <a className="button button--ghost" href={note.sourceUrl} target="_blank" rel="noreferrer">
+                打开原帖
+              </a>
+            ) : null}
             <button className="button" onClick={toggleFavorite} disabled={favoriteBusy}>
               {favoriteBusy ? '保存中...' : note.favoriteFolder ? '取消收藏' : '加入收藏'}
             </button>
@@ -118,6 +123,13 @@ export function NoteDetailPage() {
                 <span key={item}>{item}</span>
               ))}
             </div>
+            {note.sourceUrl ? (
+              <div className="source-meta">
+                <strong>来源赛道：{note.sourceTrackName ?? '真实采集'}</strong>
+                <span>采集关键词：{note.sourceKeyword ?? '未记录'}</span>
+                <span>采集时间：{note.collectedAt ?? '未记录'}</span>
+              </div>
+            ) : null}
           </div>
         </article>
 

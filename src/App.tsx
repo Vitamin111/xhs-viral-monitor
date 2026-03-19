@@ -4,6 +4,7 @@ import { AlertsPage } from './pages/AlertsPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { DiscoveryPage } from './pages/DiscoveryPage';
 import { FavoritesPage } from './pages/FavoritesPage';
+import { CollectorPage } from './pages/CollectorPage';
 import { NoteDetailPage } from './pages/NoteDetailPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { TasksPage } from './pages/TasksPage';
@@ -15,6 +16,7 @@ export default function App() {
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/discovery" element={<DiscoveryPage />} />
+        <Route path="/collector" element={<CollectorPage />} />
         <Route path="/notes/:noteId" element={<NoteDetailPage />} />
         <Route path="/tasks" element={<TasksPage />} />
         <Route path="/alerts" element={<AlertsPage />} />

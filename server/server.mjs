@@ -7,7 +7,9 @@ import {
   getDashboardStats,
   getKeywordTrends,
   getNoteById,
+  getNoteSourceByNoteId,
   getTaskById,
+  listCollectedNotes,
   listAlerts,
   listFavorites,
   listNotes,
@@ -63,6 +65,7 @@ app.get('/api/notes/:id', (req, res) => {
   }
 
   const favorite = listFavorites().find((item) => item.noteId === note.id);
+  const source = getNoteSourceByNoteId(note.id);
   res.json({
     ...note,
     ruleName: '爆款识别规则 v1',
@@ -71,6 +74,10 @@ app.get('/api/notes/:id', (req, res) => {
     favoriteFolder: favorite?.folder,
     favoriteRemark: favorite?.remark,
     favoriteTags: favorite?.tags,
+    sourceUrl: source?.sourceUrl,
+    sourceTrackName: source?.trackName,
+    sourceKeyword: source?.searchKeyword,
+    collectedAt: source?.collectedAt,
   });
 });
 
@@ -215,6 +222,12 @@ app.put('/api/settings/collector', (req, res) => {
     manualLoginRequired: typeof manualLoginRequired === 'boolean' ? manualLoginRequired : undefined,
   });
   res.json(updated);
+});
+
+app.get('/api/collector/notes', (req, res) => {
+  const keyword = String(req.query.keyword ?? '');
+  const track = String(req.query.track ?? 'ALL');
+  res.json(listCollectedNotes({ keyword, track }));
 });
 
 app.listen(port, () => {
